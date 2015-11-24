@@ -23,6 +23,7 @@ program
     .option('-D, --data <data>', 'Data to be passed along')
 //    .option('-A, --abi <abi data>', 'ABI encoded data to be passed along')
     .option('--callmethod <name>', 'Call given method (ABI signature)')
+    .option('--decoderesult <abi definition>', 'Decode result according to ABI definition (e.g. "address,bool")')
     .option('--use-contract <name>', 'Use specific contract (in case the file or string contains multiples)')
     .option('--optimize', 'Enable optimization in solc')
     .option('--address <address>', 'Set address of contract')
@@ -146,8 +147,13 @@ vm.runCode({
   console.log('Returned (' + results.return.length + '): ' + results.return.toString('hex'));
 
   // Code was runtime code, stop now
-  if (program.runtime)
+  if (program.runtime) {
+    if (program.decoderesult) {
+      console.log('Decoded: ' + decodeResult(results.return));
+    }
+
     return;
+  }
 
   vm.runCode({
     address:  address,
@@ -164,5 +170,13 @@ vm.runCode({
     console.log('Gas used: ' + results.gasUsed.toString());
     console.log('Logs: ' + results.logs.toString());
     console.log('Returned (' + results.return.length + '): ' + results.return.toString('hex'));
+    if (program.decoderesult) {
+      console.log('Decoded: ' + decodeResult(results.return));
+    }
   });
 });
+
+function decodeResult(data) {
+  var types = program.decoderesult.split(',');
+  return abi.rawDecode(null, null, types, data);
+}
