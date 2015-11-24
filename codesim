@@ -99,6 +99,8 @@ if (program.origin) {
 var gaslimit
 if (program.gaslimit) {
   gaslimit = new BN(program.gaslimit, 10);
+} else {
+  gaslimit = new Buffer('ffffffff', 'hex');
 }
 
 console.log('Executing (' + code.length + ' bytes): ' + code.toString('hex'));
@@ -108,7 +110,7 @@ vm.runCode({
   address:  address,
   caller:   caller,
   origin:   origin,
-  gaslimit: gaslimit,
+  gasLimit: gaslimit,
   code:     code,
   data:     data,
 }, function(err, results) {
@@ -130,7 +132,7 @@ vm.runCode({
     address:  address,
     caller:   caller,
     origin:   origin,
-    gaslimit: gaslimit,
+    gasLimit: gaslimit,
     code:     code,
     data:     data,
   }, function(err, results) {
