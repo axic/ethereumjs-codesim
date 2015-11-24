@@ -53,14 +53,19 @@ if (program.file) {
 
 if (program.compile) {
   var output = solc.compile(code.toString(), (program.optimize === true) ? 1: 0);
+  var contract;
   if (program.useContract)
-    code = output.contracts[program.useContract].bytecode;
+    contract = output.contracts[program.useContract];
   else {
     // Use the last in the list
     for (var contractName in output.contracts) {
-      code = output.contracts[contractName].bytecode;
+      contract = output.contracts[contractName];
     }
   }
+  if (program.runtime)
+    code = contract.runtimeBytecode;
+  else
+    code = contract.bytecode;
 }
 
 code = new Buffer(code, 'hex');
