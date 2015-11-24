@@ -1,0 +1,140 @@
+#!/usr/bin/env node
+
+// Node
+var path = require('path');
+var pkg = require( path.join(__dirname, 'package.json') );
+var fs = require('fs');
+var utils = require('utils');
+
+// Ethereum
+var BN = require('bn.js')
+var VM = require('ethereumjs-vm')
+var ABI = require('ethereumjs-abi')
+var solc = require('solc')
+
+var program = require('commander');
+
+program
+    .version(pkg.version)
+    .option('-c, --code <string>', 'Source or compiled bytecode to run')
+    .option('-f, --file <file>', 'Source or compiled bytecode to run (load from file)')
+    .option('-C, --compile', 'Compile supplied code first')
+    .option('-R, --runtime', 'Supplied bytecode is runtime code')
+    .option('-D, --data <data>', 'Data to be passed along')
+//    .option('-A, --abi <abi data>', 'ABI encoded data to be passed along')
+    .option('--use-contract <name>', 'Use specific contract (in case the file or string contains multiples)')
+    .option('--optimize', 'Enable optimization in solc')
+    .option('--address <address>', 'Set address of contract')
+    .option('--caller <address>', 'Set address of caller')
+    .option('--origin <address>', 'Set address of origin')
+    .option('--gaslimit <limit>', 'Set gas limit')
+    .option('--logexec', 'Log execution')
+    .parse(process.argv);
+
+var vm = new VM();
+var abi = new ABI();
+
+if (program.logexec) {
+  vm.on('step', function (data) {
+    console.log('opcode: ' + data.opcode.name + ' (MEM ' + data.memory.length + ', STACK ' + data.stack.length + ')');
+  });
+}
+
+var code, data;
+
+if (program.file) {
+  code = fs.readFileSync(program.file);
+} else if (program.code) {
+  code = program.code;
+} else {
+  console.error('No code given.');
+  process.exit(1);
+}
+
+if (program.compile) {
+  var output = solc.compile(code.toString(), (program.optimize === true) ? 1: 0);
+  if (program.useContract)
+    code = output.contracts[program.useContract].bytecode;
+  else {
+    // Use the last in the list
+    for (var contractName in output.contracts) {
+      code = output.contracts[contractName].bytecode;
+    }
+  }
+}
+
+code = new Buffer(code, 'hex');
+
+if (code.length <= 0) {
+  console.error('Empty or invalid code supplied.');
+  process.exit(1);
+}
+
+if (program.data) {
+  data = new Buffer(program.data, 'hex');
+} else if (program.abi) {
+  data = abi.encode(program.abi);
+}
+
+var address
+if (program.address) {
+  address = new Buffer(program.address, 'hex');
+}
+
+var caller
+if (program.caller) {
+  caller = new Buffer(program.caller, 'hex');
+}
+
+var origin
+if (program.origin) {
+  origin = new Buffer(program.origin, 'hex');
+}
+
+var gaslimit
+if (program.gaslimit) {
+  gaslimit = new BN(program.gaslimit, 10);
+}
+
+console.log('Executing (' + code.length + ' bytes): ' + code.toString('hex'));
+
+// Load code first
+vm.runCode({
+  address:  address,
+  caller:   caller,
+  origin:   origin,
+  gaslimit: gaslimit,
+  code:     code,
+  data:     data,
+}, function(err, results) {
+  if (err) {
+    console.error('Error executing loading code: ' + err);
+    process.exit(1);
+  }
+  code = results.return;
+
+  console.log('Gas used: ' + results.gasUsed.toString());
+  console.log('Logs: ' + results.logs.toString());
+  console.log('Returned (' + results.return.length + '): ' + results.return.toString('hex'));
+
+  // Code was runtime code, stop now
+  if (program.runtime)
+    return;
+
+  vm.runCode({
+    address:  address,
+    caller:   caller,
+    origin:   origin,
+    gaslimit: gaslimit,
+    code:     code,
+    data:     data,
+  }, function(err, results) {
+    if (err) {
+      console.error('Error executing code: ' + err);
+      process.exit(1);
+    }
+    console.log('Gas used: ' + results.gasUsed.toString());
+    console.log('Logs: ' + results.logs.toString());
+    console.log('Returned (' + results.return.length + '): ' + results.return.toString('hex'));
+  });
+});
