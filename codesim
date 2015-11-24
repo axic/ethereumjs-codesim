@@ -22,6 +22,7 @@ program
     .option('-R, --runtime', 'Supplied bytecode is runtime code')
     .option('-D, --data <data>', 'Data to be passed along')
 //    .option('-A, --abi <abi data>', 'ABI encoded data to be passed along')
+    .option('--callmethod <name>', 'Call given method (ABI signature)')
     .option('--use-contract <name>', 'Use specific contract (in case the file or string contains multiples)')
     .option('--optimize', 'Enable optimization in solc')
     .option('--address <address>', 'Set address of contract')
@@ -79,6 +80,19 @@ if (program.data) {
   data = new Buffer(program.data, 'hex');
 } else if (program.abi) {
   data = abi.encode(program.abi);
+} else if (program.callmethod) {
+  var tmp = /^(\w+)\(([\w,]*)\)$/.exec(program.callmethod);
+  if (tmp === null)
+    throw new Error('Invalid --callmethod parameters');
+  var method = tmp[1];
+  var types;
+  if (tmp[2] === '') {
+    types = [];
+  } else {
+    types = tmp[2].split(',');
+  }
+  // FIXME: validate actual argument types?
+  data = abi.rawEncode(method, types, program.args);
 }
 
 var address
@@ -104,6 +118,10 @@ if (program.gaslimit) {
 }
 
 console.log('Executing (' + code.length + ' bytes): ' + code.toString('hex'));
+
+if (program.logexec && data) {
+  console.log('Data passed: ' + data.toString('hex'));
+}
 
 // Load code first
 vm.runCode({
