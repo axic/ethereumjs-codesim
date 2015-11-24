@@ -54,6 +54,9 @@ if (program.file) {
 
 if (program.compile) {
   var output = solc.compile(code.toString(), (program.optimize === true) ? 1: 0);
+  if (output.errors) {
+    throw new Error(output.errors);
+  }
   var contract;
   if (program.useContract)
     contract = output.contracts[program.useContract];
