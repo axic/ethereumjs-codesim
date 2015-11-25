@@ -30,6 +30,7 @@ program
     .option('--caller <address>', 'Set address of caller')
     .option('--origin <address>', 'Set address of origin')
     .option('--gaslimit <limit>', 'Set gas limit')
+    .option('--txvalue <value>', 'Value of the transaction (Ethers transmitted)')
     .option('--logexec', 'Log execution')
     .parse(process.argv);
 
@@ -135,6 +136,7 @@ vm.runCode({
   gasLimit: gaslimit,
   code:     code,
   data:     data,
+  value:    new BN(program.txvalue)
 }, function(err, results) {
   if (err) {
     console.error('Error executing loading code: ' + err);
@@ -162,6 +164,7 @@ vm.runCode({
     gasLimit: gaslimit,
     code:     code,
     data:     data,
+    value:    new BN(program.txvalue)
   }, function(err, results) {
     if (err) {
       console.error('Error executing code: ' + err);
