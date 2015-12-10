@@ -9,7 +9,7 @@
     "ethereumjs-abi": "^0.2.0",
     "ethereumjs-vm": "^1.0.2",
     "glob": "^6.0.1",
-    "solc": "^0.1.7-1",
+    "solc": "^0.2.0-1",
     "utils": "^0.3.1"
   },
   "bin": {
