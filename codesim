@@ -2,15 +2,15 @@
 
 // Node
 var path = require('path');
-var pkg = require( path.join(__dirname, 'package.json') );
+var pkg = require(path.join(__dirname, 'package.json'));
 var fs = require('fs');
 var utils = require('utils');
 
 // Ethereum
-var BN = require('bn.js')
-var VM = require('ethereumjs-vm')
-var ABI = require('ethereumjs-abi')
-var solc = require('solc')
+var BN = require('bn.js');
+var VM = require('ethereumjs-vm');
+var ABI = require('ethereumjs-abi');
+var solc = require('solc');
 
 var program = require('commander');
 
@@ -55,23 +55,24 @@ if (program.file) {
 }
 
 if (program.compile) {
-  var output = solc.compile(code.toString(), (program.optimize === true) ? 1: 0);
+  var output = solc.compile(code.toString(), (program.optimize === true) ? 1 : 0);
   if (output.errors) {
     throw new Error(output.errors);
   }
   var contract;
-  if (program.useContract)
+  if (program.useContract) {
     contract = output.contracts[program.useContract];
-  else {
+  } else {
     // Use the last in the list
     for (var contractName in output.contracts) {
       contract = output.contracts[contractName];
     }
   }
-  if (program.runtime)
+  if (program.runtime) {
     code = contract.runtimeBytecode;
-  else
+  } else {
     code = contract.bytecode;
+  }
 }
 
 code = new Buffer(code, 'hex');
@@ -87,8 +88,9 @@ if (program.data) {
   data = abi.encode(program.abi);
 } else if (program.callmethod) {
   var tmp = /^(\w+)\(([\w,]*)\)$/.exec(program.callmethod);
-  if (tmp === null)
+  if (tmp === null) {
     throw new Error('Invalid --callmethod parameters');
+  }
   var method = tmp[1];
   var types;
   if (tmp[2] === '') {
@@ -100,22 +102,22 @@ if (program.data) {
   data = abi.rawEncode(method, types, program.args);
 }
 
-var address
+var address;
 if (program.address) {
   address = new Buffer(program.address, 'hex');
 }
 
-var caller
+var caller;
 if (program.caller) {
   caller = new Buffer(program.caller, 'hex');
 }
 
-var origin
+var origin;
 if (program.origin) {
   origin = new Buffer(program.origin, 'hex');
 }
 
-var gaslimit
+var gaslimit;
 if (program.gaslimit) {
   gaslimit = new BN(program.gaslimit, 10);
 } else {
@@ -137,7 +139,7 @@ vm.runCode({
   code:     code,
   data:     data,
   value:    new BN(program.txvalue)
-}, function(err, results) {
+}, function (err, results) {
   if (err) {
     console.error('Error executing loading code: ' + err);
     process.exit(1);
@@ -165,7 +167,7 @@ vm.runCode({
     code:     code,
     data:     data,
     value:    new BN(program.txvalue)
-  }, function(err, results) {
+  }, function (err, results) {
     if (err) {
       console.error('Error executing code: ' + err);
       process.exit(1);
@@ -179,7 +181,7 @@ vm.runCode({
   });
 });
 
-function decodeResult(data) {
+function decodeResult (data) {
   var types = program.decoderesult.split(',');
   return abi.rawDecode(null, null, types, data);
 }
