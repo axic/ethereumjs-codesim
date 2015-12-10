@@ -11,6 +11,7 @@ var BN = require('bn.js');
 var VM = require('ethereumjs-vm');
 var ABI = require('ethereumjs-abi');
 var solc = require('solc');
+var glob = require('glob');
 
 var program = require('commander');
 
@@ -26,6 +27,7 @@ program
     .option('--decoderesult <abi definition>', 'Decode result according to ABI definition (e.g. "address,bool")')
     .option('--use-contract <name>', 'Use specific contract (in case the file or string contains multiples)')
     .option('--optimize', 'Enable optimization in solc')
+    .option('--imports <glob>', 'Import Solidiy files according to <glob>')
     .option('--address <address>', 'Set address of contract')
     .option('--caller <address>', 'Set address of caller')
     .option('--origin <address>', 'Set address of origin')
@@ -49,13 +51,30 @@ if (program.file) {
   code = fs.readFileSync(program.file);
 } else if (program.code) {
   code = program.code;
-} else {
+} else if (!program.imports) {
   console.error('No code given.');
   process.exit(1);
 }
 
 if (program.compile) {
-  var output = solc.compile(code.toString(), (program.optimize === true) ? 1 : 0);
+  if (program.imports) {
+    var imports = glob.sync(program.imports);
+    var files = {};
+
+    // There is an additional main file
+    if (program.file || program.code) {
+      files[program.file ? program.file : "start.sol"] = code;
+    }
+
+    for (var i = 0; i < imports.length; i++) {
+      files[imports[i]] = fs.readFileSync(imports[i]).toString();
+    }
+    var sources = { sources: files };
+  } else {
+    var sources = code.toString();
+  }
+
+  var output = solc.compile(sources, (program.optimize === true) ? 1: 0);
   if (output.errors) {
     throw new Error(output.errors);
   }
